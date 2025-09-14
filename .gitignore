@@ -1,0 +1,5 @@
+indic_nlp_resources/
+genv/
+tokenized_data/
+__pycache__/
+*.pyc
