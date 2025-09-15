@@ -1,15 +1,18 @@
+#!/usr/bin/env python3
+"""
+Nepali Text Tokenizer
+Handles fetching and tokenizing Nepali news articles
+"""
 
 from indicnlp.tokenize import indic_tokenize
-import json
 import requests
 import time
 import logging
-from datetime import datetime
 from typing import Optional, List, Dict
 import os
+from utils import ProcessingResult, ensure_directory, generate_timestamp_filename, save_json_data, create_metadata_dict
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Set up module logger
 logger = logging.getLogger(__name__)
 
 # Set path to Indic NLP Resources - change this path accordingly
@@ -19,15 +22,11 @@ class NepaliTextTokenizer:
     def __init__(self, server_url: str, output_dir: str = "tokenized_data"):
         self.server_url = server_url
         self.output_dir = output_dir
-        self.ensure_output_directory()
         
-    def ensure_output_directory(self):
-        """Create output directory if it doesn't exist"""
-        if not os.path.exists(self.output_dir):
-            os.makedirs(self.output_dir)
-            logger.info(f"Created output directory: {self.output_dir}")
+        if not ensure_directory(self.output_dir):
+            raise RuntimeError(f"Failed to create output directory: {self.output_dir}")
     
-    def fetch_live_articles(self, endpoint: str = "/news/api.php", timeout: int = 10) -> Optional[List[Dict]]:
+    def fetch_live_articles(self, endpoint: str = "/news/api.php", timeout: int = 10) -> ProcessingResult:
         """
         Fetch multiple live articles from the Nepali news API
 
@@ -36,8 +35,10 @@ class NepaliTextTokenizer:
             timeout: Request timeout in seconds
 
         Returns:
-            List of articles (each is a dict) or None if failed
+            ProcessingResult with articles data or error
         """
+        result = ProcessingResult()
+        
         try:
             url = f"{self.server_url}{endpoint}"
             logger.info(f"Fetching data from: {url}")
@@ -48,23 +49,27 @@ class NepaliTextTokenizer:
             data = response.json()
 
             if not isinstance(data, list):
-                logger.error("Unexpected data format: Expected a list of articles")
-                return None
+                result.error = "Unexpected data format: Expected a list of articles"
+                return result
             
             logger.info(f"Successfully fetched {len(data)} articles")
-            return data
+            result.success = True
+            result.data = {"articles": data}
+            return result
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error fetching data from server: {e}")
-            return None
-        except json.JSONDecodeError as e:
-            logger.error(f"Error parsing JSON response: {e}")
-            return None
+            result.error = f"Network error: {e}"
+            logger.error(result.error)
+        except ValueError as e:  # JSON decode error
+            result.error = f"Invalid JSON response: {e}"
+            logger.error(result.error)
         except Exception as e:
-            logger.error(f"Unexpected error: {e}")
-            return None
+            result.error = f"Unexpected error: {e}"
+            logger.error(result.error)
+        
+        return result
 
-    def tokenize_text(self, text: str) -> List[str]:
+    def tokenize_text(self, text: str) -> ProcessingResult:
         """
         Tokenize Nepali text using Indic NLP
         
@@ -72,22 +77,30 @@ class NepaliTextTokenizer:
             text: Input text to tokenize
             
         Returns:
-            List of tokens
+            ProcessingResult with tokens or error
         """
+        result = ProcessingResult()
+        
         try:
             if not text or not text.strip():
                 logger.warning("Empty text provided for tokenization")
-                return []
+                result.success = True
+                result.data = {"tokens": []}
+                return result
                 
             tokens = list(indic_tokenize.trivial_tokenize(text.strip()))
             logger.info(f"Tokenized text into {len(tokens)} tokens")
-            return tokens
+            
+            result.success = True
+            result.data = {"tokens": tokens}
+            return result
             
         except Exception as e:
-            logger.error(f"Error tokenizing text: {e}")
-            return []
+            result.error = f"Tokenization failed: {e}"
+            logger.error(result.error)
+            return result
     
-    def save_tokens(self, tokens: List[str], filename: Optional[str] = None) -> str:
+    def save_tokens(self, tokens: List[str], filename: Optional[str] = None) -> ProcessingResult:
         """
         Save tokens to JSON file
         
@@ -96,33 +109,37 @@ class NepaliTextTokenizer:
             filename: Optional custom filename
             
         Returns:
-            Path to saved file
+            ProcessingResult with file path or error
         """
+        result = ProcessingResult()
+        
         try:
             if not filename:
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"article_tokens_{timestamp}.json"
+                filename = generate_timestamp_filename("article_tokens")
                 
             filepath = os.path.join(self.output_dir, filename)
             
             # Create metadata
-            metadata = {
-                "timestamp": datetime.now().isoformat(),
-                "token_count": len(tokens),
-                "tokens": tokens
-            }
+            metadata = create_metadata_dict(
+                token_count=len(tokens),
+                tokens=tokens
+            )
             
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(metadata, f, ensure_ascii=False, indent=2)
-                
-            logger.info(f"Tokens saved to: {filepath}")
-            return filepath
+            if save_json_data(metadata, filepath):
+                result.success = True
+                result.data = {"filepath": filepath}
+                logger.info(f"Tokens saved successfully")
+            else:
+                result.error = "Failed to save tokens to file"
+            
+            return result
             
         except Exception as e:
-            logger.error(f"Error saving tokens: {e}")
-            return ""
+            result.error = f"Error saving tokens: {e}"
+            logger.error(result.error)
+            return result
     
-    def process_live_data(self, endpoint: str = "/news/api.php") -> Dict:
+    def process_live_data(self, endpoint: str = "/news/api.php") -> ProcessingResult:
         """
         Complete pipeline: fetch multiple articles, tokenize titles/descriptions, and save tokens
 
@@ -130,56 +147,49 @@ class NepaliTextTokenizer:
             endpoint: API endpoint to fetch from
 
         Returns:
-            Dictionary with processing results
+            ProcessingResult with processing results
         """
-        result = {
-            "success": False,
-            "tokens": [],
-            "filepath": "",
-            "error": None
+        # Fetch articles
+        fetch_result = self.fetch_live_articles(endpoint)
+        if not fetch_result.success:
+            return fetch_result
+
+        articles = fetch_result.data["articles"]
+        
+        # Tokenize all articles
+        all_tokens = []
+        for article in articles:
+            # Use 'title' and/or 'description' for tokenization
+            text_to_tokenize = article.get('title', '') + " " + article.get('description', '')
+            
+            tokenize_result = self.tokenize_text(text_to_tokenize)
+            if tokenize_result.success:
+                all_tokens.extend(tokenize_result.data["tokens"])
+
+        if not all_tokens:
+            result = ProcessingResult()
+            result.error = "No tokens generated from articles"
+            return result
+
+        # Save tokens
+        save_result = self.save_tokens(all_tokens)
+        if not save_result.success:
+            return save_result
+
+        # Return comprehensive result
+        result = ProcessingResult(success=True)
+        result.data = {
+            "tokens": all_tokens,
+            "filepath": save_result.data["filepath"],
+            "token_count": len(all_tokens),
+            "articles_processed": len(articles)
         }
 
-        try:
-            articles = self.fetch_live_articles(endpoint)
-            if not articles:
-                result["error"] = "Failed to fetch articles from server"
-                return result
-
-            all_tokens = []
-            for article in articles:
-                # Use 'title' and/or 'description' for tokenization
-                text_to_tokenize = article.get('title', '') + " " + article.get('description', '')
-                tokens = self.tokenize_text(text_to_tokenize)
-                all_tokens.extend(tokens)
-
-            if not all_tokens:
-                result["error"] = "No tokens generated from articles"
-                return result
-
-            filepath = self.save_tokens(all_tokens)
-
-            if not filepath:
-                result["error"] = "Failed to save tokens"
-                return result
-
-            result.update({
-                "success": True,
-                "tokens": all_tokens,
-                "filepath": filepath,
-                "token_count": len(all_tokens)
-            })
-
-            logger.info(f"Successfully processed live data: {len(all_tokens)} tokens")
-            return result
-
-        except Exception as e:
-            logger.error(f"Error in processing pipeline: {e}")
-            result["error"] = str(e)
-            return result
-
+        logger.info(f"Successfully processed live data: {len(all_tokens)} tokens from {len(articles)} articles")
+        return result
     
     def continuous_monitoring(self, endpoint: str = "/api/articles", 
-                            interval: int = 300, max_iterations: int = None):
+                            interval: int = 300, max_iterations: int = None) -> ProcessingResult:
         """
         Continuously monitor server for new data
         
@@ -187,8 +197,14 @@ class NepaliTextTokenizer:
             endpoint: API endpoint to monitor
             interval: Time interval between checks (seconds)
             max_iterations: Maximum number of iterations (None for infinite)
+            
+        Returns:
+            ProcessingResult with monitoring summary
         """
+        result = ProcessingResult()
         iteration = 0
+        successful_iterations = 0
+        
         logger.info(f"Starting continuous monitoring (interval: {interval}s)")
         
         try:
@@ -198,12 +214,13 @@ class NepaliTextTokenizer:
                     break
                 
                 logger.info(f"Monitoring iteration {iteration + 1}")
-                result = self.process_live_data(endpoint)
+                process_result = self.process_live_data(endpoint)
                 
-                if result["success"]:
-                    logger.info(f"Processed {result['token_count']} tokens successfully")
+                if process_result.success:
+                    logger.info(f"Processed {process_result.data['token_count']} tokens successfully")
+                    successful_iterations += 1
                 else:
-                    logger.warning(f"Processing failed: {result['error']}")
+                    logger.warning(f"Processing failed: {process_result.error}")
                 
                 iteration += 1
                 
@@ -211,9 +228,23 @@ class NepaliTextTokenizer:
                     logger.info(f"Waiting {interval} seconds for next check...")
                     time.sleep(interval)
                     
+            result.success = True
+            result.data = {
+                "total_iterations": iteration,
+                "successful_iterations": successful_iterations,
+                "success_rate": (successful_iterations / iteration * 100) if iteration > 0 else 0
+            }
+                    
         except KeyboardInterrupt:
             logger.info("Monitoring stopped by user")
+            result.success = True
+            result.data = {
+                "total_iterations": iteration,
+                "successful_iterations": successful_iterations,
+                "stopped_by_user": True
+            }
         except Exception as e:
-            logger.error(f"Error in continuous monitoring: {e}")
+            result.error = f"Error in continuous monitoring: {e}"
+            logger.error(result.error)
 
-# Remove main function - will be in separate file
+        return result

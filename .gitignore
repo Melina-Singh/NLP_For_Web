@@ -3,3 +3,5 @@ genv/
 tokenized_data/
 __pycache__/
 *.pyc
+logs/
+cleaned_data/
