@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Grievance System - Nepal</title>
+    <style>
+        :root {
+            --primary: #dc143c;
+            --primary-dark: #b01030;
+            --secondary: #3366cc;
+            --light: #f4f4f4;
+            --dark: #333;
+            --gray: #666;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo-icon {
+            font-size: 2rem;
+        }
+        
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 20px;
+        }
+        
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.3s;
+        }
+        
+        nav a:hover {
+            opacity: 0.8;
+        }
+        
+        .hero {
+            padding: 3rem 0;
+            text-align: center;
+            background-color: white;
+        }
+        
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--gray);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .language-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 1.5rem 0;
+        }
+        
+        .lang-btn {
+            padding: 8px 16px;
+            border: 2px solid var(--secondary);
+            background: white;
+            color: var(--secondary);
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .lang-btn.active {
+            background: var(--secondary);
+            color: white;
+        }
+        
+        .grievance-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin: 2rem auto;
+            max-width: 800px;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        textarea.form-control {
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: var(--primary-dark);
+        }
+        
+        .ai-response {
+            background: #e8f4fc;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+            display: none;
+        }
+        
+        .ai-response h3 {
+            color: var(--secondary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .ai-icon {
+            color: var(--secondary);
+            font-size: 1.5rem;
+        }
+        
+        .category-tag {
+            display: inline-block;
+            padding: 5px 10px;
+            background: var(--secondary);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+        
+        .sentiment-positive {
+            color: var(--success);
+            font-weight: bold;
+        }
+        
+        .sentiment-negative {
+            color: var(--danger);
+            font-weight: bold;
+        }
+        
+        .sentiment-neutral {
+            color: var(--gray);
+            font-weight: bold;
+        }
+        
+        .features {
+            padding: 3rem 0;
+            background: white;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--primary);
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .feature-card {
+            background: var(--light);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            color: var(--secondary);
+            margin-bottom: 1rem;
+        }
+        
+        footer {
+            background: var(--dark);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .grievance-form {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">⚖️</span>
+                    <span class="logo-text">Nepal Grievance System</span>
+                </div>
+                <nav>
+                    <ul>
+                        <li><a href="#">Home</a></li>
+                        <li><a href="#">Submit Grievance</a></li>
+                        <li><a href="#">Track Status</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>AI-Powered Grievance Redressal System</h1>
+            <p>Submit your grievances in Nepali, English, or mixed Romanized language. Our AI system will process and route your concern to the appropriate department.</p>
+            
+            <div class="language-selector">
+                <button class="lang-btn active" data-lang="nepali">नेपाली</button>
+                <button class="lang-btn" data-lang="english">English</button>
+                <button class="lang-btn" data-lang="romanized">Romanized</button>
+            </div>
+        </div>
+    </section>
+
+    <div class="container">
+        <div class="grievance-form">
+            <h2>Submit Your Grievance</h2>
+            <form id="complaintForm">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label for="grievance">Your Grievance</label>
+                    <textarea id="grievance" class="form-control" placeholder="Please describe your issue in detail..." required></textarea>
+                </div>
+                
+                <button type="submit" class="btn">Submit Grievance</button>
+            </form>
+            
+            <div class="ai-response" id="aiResponse">
+                <h3><span class="ai-icon">🤖</span> AI Analysis</h3>
+                <p>Your grievance has been processed by our AI system:</p>
+                <p><strong>Detected Language:</strong> <span id="detectedLang">Nepali/English Mixed</span></p>
+                <p><strong>Category:</strong> <span class="category-tag" id="category">Infrastructure</span></p>
+                <p><strong>Sentiment:</strong> <span id="sentiment">Frustrated</span></p>
+                <p><strong>Suggested Department:</strong> <span id="department">Department of Urban Development</span></p>
+                <p><strong>Priority:</strong> <span id="priority">High</span></p>
+                <p><strong>Next Steps:</strong> Your grievance has been forwarded to the relevant department. You will receive an update within 3 working days.</p>
+            </div>
+        </div>
+    </div>
+
+    <section class="features">
+        <div class="container">
+            <h2 class="section-title">How Our AI System Works</h2>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <h3>Multilingual Support</h3>
+                    <p>Our AI understands Nepali, English, and mixed Romanized text, making it accessible to all citizens.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Smart Categorization</h3>
+                    <p>AI automatically categorizes your grievance and routes it to the appropriate department.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Fast Processing</h3>
+                    <p>Reduce response times from weeks to days with our automated grievance processing system.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>© 2023 Nepal Government Grievance System. All rights reserved.</p>
+            <p>Powered by AI Technology for Better Governance</p>
+        </div>
+    </footer>
+
+    <script>
+        // Training data for the AI model
+        const trainingData = [
+            {text: "पसल बिहान १० बजे खुल्छ।", language: "Nepali", sentiment: "Neutral"},
+            {text: "Internet speed thik cha.", language: "English-Nepali Mixed", sentiment: "Positive"},
+            {text: "खेल ७ बजे सुरु हुन्छ।", language: "Nepali", sentiment: "Neutral"},
+            {text: "सेवा निकै राम्रो छ।", language: "Nepali", sentiment: "Positive"},
+            {text: "Electricity supply बारम्बार बन्द हुन्छ।", language: "English-Nepali Mixed", sentiment: "Negative"},
+            {text: "पानी को ट्याप काम नगरेको छ.", language: "Nepali", sentiment: "Negative"},
+            {text: "Road ma pothole le gadi damage vayechha.", language: "Romanized-Nepali", sentiment: "Negative"},
+            {text: "The internet speed is too slow.", language: "English", sentiment: "Negative"},
+            {text: "Bijuli aayena ani ghar ma andhera cha.", language: "Nepali", sentiment: "Negative"},
+            {text: "Service staff were helpful and polite.", language: "English", sentiment: "Positive"}
+        ];
+
+        // Keyword dictionaries for categorization
+        const categoryKeywords = {
+            electricity: ["बिजुली", "bijuli", "electricity", "power", "light", "बत्ती", "batti"],
+            water: ["पानी", "paani", "water", "ट्याप", "tap", "धारा", "dhara"],
+            internet: ["internet", "इन्टरनेट", "speed", "गति", "gati", "नेट", "net"],
+            road: ["road", "सडक", "sadak", "pothole", "खाड्ड", "khadd", "गाडी", "gadi"],
+            service: ["service", "सेवा", "sewa", "staff", "कर्मचारी", "karmachari", "helpful", "सहयोग", "sahayog"]
+        };
+
+        // Sentiment analysis keywords
+        const sentimentKeywords = {
+            positive: ["राम्रो", "ramro", "good", "great", "excellent", "helpful", "polite", "thik", "ठिक", "सहयोग", "sahayog"],
+            negative: ["नगरेको", "nagareko", "बन्द", "banda", "slow", "damage", "andhera", "अन्धेरा", "खराब", "kharab", "समस्या", "samasya"]
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Language selector functionality
+            const langButtons = document.querySelectorAll('.lang-btn');
+            langButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    langButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Update placeholder text based on selected language
+                    const grievanceTextarea = document.getElementById('grievance');
+                    if (this.dataset.lang === 'nepali') {
+                        grievanceTextarea.placeholder = 'कृपया आफ्नो समस्या विस्तृत रूपमा वर्णन गर्नुहोस्...';
+                    } else if (this.dataset.lang === 'english') {
+                        grievanceTextarea.placeholder = 'Please describe your issue in detail...';
+                    } else {
+                        grievanceTextarea.placeholder = 'Kripaya aphno samasya bistrit rupma varnan garnuhos...';
+                    }
+                });
+            });
+            
+            // Form submission handler
+            const complaintForm = document.getElementById('complaintForm');
+            const aiResponse = document.getElementById('aiResponse');
+            
+            complaintForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Get user input
+                const grievanceText = document.getElementById('grievance').value;
+                
+                // Process with AI
+                const analysis = analyzeGrievance(grievanceText);
+                
+                // Display results
+                displayAnalysisResults(analysis);
+                
+                // Show AI response section
+                aiResponse.style.display = 'block';
+                
+                // Scroll to AI response
+                aiResponse.scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            // AI analysis function
+            function analyzeGrievance(text) {
+                // Language detection
+                const language = detectLanguage(text);
+                
+                // Sentiment analysis
+                const sentiment = analyzeSentiment(text);
+                
+                // Category detection
+                const category = detectCategory(text);
+                
+                // Department assignment
+                const department = assignDepartment(category);
+                
+                // Priority assignment
+                const priority = assignPriority(sentiment, category);
+                
+                return {
+                    language,
+                    sentiment,
+                    category,
+                    department,
+                    priority
+                };
+            }
+            
+            // Language detection function
+            function detectLanguage(text) {
+                // Check for Nepali characters
+                const nepaliRegex = /[\u0900-\u097F]/;
+                if (nepaliRegex.test(text)) {
+                    // Check if it contains English words
+                    const englishRegex = /[a-zA-Z]/;
+                    if (englishRegex.test(text)) {
+                        return "English-Nepali Mixed";
+                    }
+                    return "Nepali";
+                }
+                
+                // Check for Romanized Nepali (common words)
+                const romanizedWords = ["cha", "thik", "vayechha", "ma", "le", "ani", "gari", "ko", "ki"];
+                const hasRomanized = romanizedWords.some(word => text.toLowerCase().includes(word));
+                
+                if (hasRomanized) {
+                    return "Romanized-Nepali";
+                }
+                
+                // Default to English
+                return "English";
+            }
+            
+            // Sentiment analysis function
+            function analyzeSentiment(text) {
+                const lowerText = text.toLowerCase();
+                let positiveCount = 0;
+                let negativeCount = 0;
+                
+                // Count positive keywords
+                sentimentKeywords.positive.forEach(keyword => {
+                    if (lowerText.includes(keyword.toLowerCase())) {
+                        positiveCount++;
+                    }
+                });
+                
+                // Count negative keywords
+                sentimentKeywords.negative.forEach(keyword => {
+                    if (lowerText.includes(keyword.toLowerCase())) {
+                        negativeCount++;
+                    }
+                });
+                
+                // Determine sentiment
+                if (positiveCount > negativeCount) {
+                    return "Positive";
+                } else if (negativeCount > positiveCount) {
+                    return "Negative";
+                } else {
+                    return "Neutral";
+                }
+            }
+            
+            // Category detection function
+            function detectCategory(text) {
+                const lowerText = text.toLowerCase();
+                const categoryScores = {};
+                
+                // Initialize category scores
+                for (const category in categoryKeywords) {
+                    categoryScores[category] = 0;
+                }
+                
+                // Score each category based on keyword matches
+                for (const category in categoryKeywords) {
+                    categoryKeywords[category].forEach(keyword => {
+                        if (lowerText.includes(keyword.toLowerCase())) {
+                            categoryScores[category]++;
+                        }
+                    });
+                }
+                
+                // Find the category with the highest score
+                let maxScore = 0;
+                let detectedCategory = "General";
+                
+                for (const category in categoryScores) {
+                    if (categoryScores[category] > maxScore) {
+                        maxScore = categoryScores[category];
+                        detectedCategory = category;
+                    }
+                }
+                
+                // Format category name for display
+                return detectedCategory.charAt(0).toUpperCase() + detectedCategory.slice(1);
+            }
+            
+            // Department assignment function
+            function assignDepartment(category) {
+                const departmentMap = {
+                    "Electricity": "Nepal Electricity Authority",
+                    "Water": "Kathmandu Upatyaka Khanepani Limited",
+                    "Internet": "Internet Service Provider Regulation Department",
+                    "Road": "Department of Roads and Infrastructure",
+                    "Service": "Public Service Management Office",
+                    "General": "Central Grievance Handling Unit"
+                };
+                
+                return departmentMap[category] || departmentMap["General"];
+            }
+            
+            // Priority assignment function
+            function assignPriority(sentiment, category) {
+                // Critical categories get high priority regardless of sentiment
+                const criticalCategories = ["Electricity", "Water"];
+                
+                if (criticalCategories.includes(category)) {
+                    return "High";
+                }
+                
+                // Negative sentiments get medium priority
+                if (sentiment === "Negative") {
+                    return "Medium";
+                }
+                
+                // Everything else gets low priority
+                return "Low";
+            }
+            
+            // Display analysis results
+            function displayAnalysisResults(analysis) {
+                document.getElementById('detectedLang').textContent = analysis.language;
+                document.getElementById('category').textContent = analysis.category;
+                
+                // Set sentiment with appropriate class
+                const sentimentElement = document.getElementById('sentiment');
+                sentimentElement.textContent = analysis.sentiment;
+                sentimentElement.className = `sentiment-${analysis.sentiment.toLowerCase()}`;
+                
+                document.getElementById('department').textContent = analysis.department;
+                document.getElementById('priority').textContent = analysis.priority;
+            }
+        });
+    </script>
+</body>
+</html>
